@@ -1,0 +1,6 @@
+.Rproj.user/
+.DS_Store
+.Rhistory
+.RData
+documents/
+build_region_bundles.R
