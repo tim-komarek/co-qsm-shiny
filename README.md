@@ -24,6 +24,8 @@ The app currently supports tract-level percent shocks to:
 ## Included data
 
 This repo includes precomputed regional `.rds` bundles in `data/`, so the app should run immediately after clone.
+Land supply in those bundles should be built from `K_available_tracts`, not raw `ALAND`.
+If `K_available_tracts` is exactly zero, the bundle builder keeps the displayed value at zero and applies a tiny positive floor only inside the solver inputs.
 
 ## Required R packages
 

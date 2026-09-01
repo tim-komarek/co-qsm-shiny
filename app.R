@@ -8,7 +8,7 @@ data_dir <- file.path(app_dir, "data")
 
 source(file.path(app_dir, "R", "model_bundle_helpers.R"))
 source(file.path(app_dir, "R", "scenario_helpers.R"))
-source_model_functions()
+source_model_functions(app_dir = app_dir)
 
 bundle_files <- list_available_bundles(data_dir)
 
@@ -310,7 +310,7 @@ server <- function(input, output, session) {
     pal <- build_palette(map_data$fill_value)
 
     leaflet(map_data) |>
-      addProviderTiles("CartoDB.Positron") |>
+      addProviderTiles("OpenStreetMap.Mapnik") |>
       addPolygons(
         layerId = ~GEOID,
         fillColor = ~pal(fill_value),
@@ -377,7 +377,7 @@ server <- function(input, output, session) {
     pal <- build_palette(map_data$fill_value)
 
     leaflet(map_data) |>
-      addProviderTiles("CartoDB.Positron") |>
+      addProviderTiles("OpenStreetMap.Mapnik") |>
       addPolygons(
         layerId = ~GEOID,
         fillColor = ~pal(fill_value),
