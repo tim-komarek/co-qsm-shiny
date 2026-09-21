@@ -141,6 +141,10 @@ add_comparison_columns <- function(result_sf) {
     counterfactual_col <- comparison_pairs$counterfactual_col[[i]]
     base_name <- comparison_pairs$base_name[[i]]
 
+    # Cached solver outputs can be one-column matrices; comparisons need vectors.
+    output[[baseline_col]] <- as.numeric(output[[baseline_col]])
+    output[[counterfactual_col]] <- as.numeric(output[[counterfactual_col]])
+
     output[[paste0("delta_", base_name)]] <- output[[counterfactual_col]] - output[[baseline_col]]
     output[[paste0("pct_", base_name)]] <- dplyr::if_else(
       abs(output[[baseline_col]]) > 0,

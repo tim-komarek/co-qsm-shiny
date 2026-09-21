@@ -46,6 +46,9 @@ shiny::runApp()
 
 ## Repository structure
 
+Run `Rscript check_scenarios.R` from the app directory to check cached-bundle
+comparisons and a counterfactual solve before deploying.
+
 - `app.R`: Shiny app entry point
 - `R/`: model and app helper code
 - `data/`: precomputed region bundles used by the app
