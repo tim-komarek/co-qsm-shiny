@@ -4335,8 +4335,14 @@
     }
   },
   "files": {
+    "app.css": {
+      "checksum": "659cc8115a98145c3e0e62ed22fb5af3"
+    },
+    "app.js": {
+      "checksum": "aa8eb44c37687f2b34bdbe251ca5d26e"
+    },
     "app.R": {
-      "checksum": "fb6193369279351cf54c11a12d86b889"
+      "checksum": "9e8757329e18e0b8134d62793e26d30c"
     },
     "data/region_1_bundle.rds": {
       "checksum": "c3268e4bce4a3258154e201f968a0c56"

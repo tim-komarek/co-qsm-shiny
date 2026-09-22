@@ -44,125 +44,120 @@ build_palette <- function(values) {
 }
 
 ui <- fluidPage(
-  titlePanel("Colorado Quantitative Spatial Model"),
-  if (nrow(bundle_index) == 0) {
-    fluidRow(
-      column(
-        width = 12,
+  title = "Colorado Quantitative Spatial Model",
+  tags$head(
+    includeCSS(file.path(app_dir, "app.css")),
+    includeScript(file.path(app_dir, "app.js"))
+  ),
+  div(
+    class = "qsm-app",
+    div(class = "qsm-title", h2("Colorado Quantitative Spatial Model")),
+    if (nrow(bundle_index) == 0) {
+      div(
+        class = "qsm-empty",
         h4("No Shiny region bundles found."),
         p("Run `Rscript Shiny/build_region_bundles.R` from the project root, then restart the app.")
       )
-    )
-  } else {
-    sidebarLayout(
-      sidebarPanel(
-        selectInput(
-          inputId = "region_id",
-          label = "Region",
-          choices = set_names(bundle_index$region_id, bundle_index$region_name),
-          selected = bundle_index$region_id[[1]]
-        ),
-        tags$hr(),
-        h4("Baseline Map"),
-        selectInput(
-          inputId = "baseline_map_var",
-          label = "Baseline variable",
-          choices = baseline_choices,
-          selected = "res_obs"
-        ),
-        actionButton("clear_selection", "Clear selected tracts"),
-        tags$hr(),
-        h4("Intervention Builder"),
-        textInput(
-          inputId = "tract_set_name",
-          label = "Tract set name",
-          value = "selected_tracts"
-        ),
-        selectInput(
-          inputId = "target_variable",
-          label = "Policy variable",
-          choices = policy_choices,
-          selected = "b"
-        ),
-        sliderInput(
-          inputId = "shock_percent",
-          label = "Percent change",
-          min = -95,
-          max = 100,
-          value = 10,
-          step = 1,
-          post = "%"
-        ),
-        actionButton("add_table_selection", "Add table selection to current tract set"),
-        actionButton("add_intervention", "Add intervention"),
-        actionButton("remove_last_intervention", "Remove last intervention"),
-        actionButton("clear_interventions", "Clear interventions"),
-        tags$hr(),
-        actionButton("run_scenario", "Run scenario", class = "btn-primary")
-      ),
-      mainPanel(
-        tabsetPanel(
-          tabPanel(
-            "Baseline Explorer",
-            br(),
-            fluidRow(
-              column(
-                width = 8,
-                leafletOutput("baseline_map", height = 700)
+    } else {
+      div(
+        class = "qsm-layout",
+        tags$aside(
+          class = "qsm-sidebar",
+          `aria-label` = "Model controls",
+          tags$details(
+            id = "qsm-controls",
+            open = "open",
+            tags$summary("Model controls and tract selection"),
+            div(
+              class = "qsm-controls-scroll",
+              selectInput(
+                "region_id", "Region",
+                choices = set_names(bundle_index$region_id, bundle_index$region_name),
+                selected = bundle_index$region_id[[1]]
               ),
-              column(
-                width = 4,
-                h4("Selected Tracts"),
-                verbatimTextOutput("selected_tract_summary"),
-                selectizeInput(
-                  inputId = "tract_table_geoid",
-                  label = "Add tracts from list",
-                  choices = NULL,
-                  multiple = TRUE
-                ),
-                h4("Tract Table"),
-                tableOutput("tract_table")
-              )
+              selectInput(
+                "baseline_map_var", "Baseline variable",
+                choices = baseline_choices, selected = "res_obs"
+              ),
+              h4("Selected tracts"),
+              verbatimTextOutput("selected_tract_summary"),
+              selectizeInput(
+                "tract_table_geoid", "Add tracts from list",
+                choices = NULL, multiple = TRUE
+              ),
+              div(
+                class = "qsm-buttons",
+                actionButton("add_table_selection", "Add to selected tracts"),
+                actionButton("clear_selection", "Clear selected tracts")
+              ),
+              h4("Intervention builder"),
+              textInput("tract_set_name", "Tract set name", value = "selected_tracts"),
+              selectInput("target_variable", "Policy variable", choices = policy_choices, selected = "b"),
+              sliderInput("shock_percent", "Percent change", min = -95, max = 100, value = 10, step = 1, post = "%"),
+              div(
+                class = "qsm-buttons",
+                actionButton("add_intervention", "Add intervention"),
+                actionButton("remove_last_intervention", "Remove last intervention"),
+                actionButton("clear_interventions", "Clear interventions")
+              ),
+              div(class = "qsm-status", textOutput("intervention_count"))
             )
           ),
-          tabPanel(
-            "Scenario Results",
-            br(),
-            fluidRow(
-              column(
-                width = 3,
-                selectInput(
-                  inputId = "result_map_var",
-                  label = "Result variable",
-                  choices = result_choices,
-                  selected = "u"
+          div(
+            class = "qsm-run-area",
+            actionButton("run_scenario", "Run scenario", class = "btn-primary")
+          )
+        ),
+        tags$main(
+          class = "qsm-main",
+          tabsetPanel(
+            id = "main_view",
+            tabPanel(
+              "Baseline map", value = "baseline",
+              div(class = "qsm-map-panel", leafletOutput("baseline_map", height = "100%"))
+            ),
+            tabPanel(
+              "Tract table", value = "tracts",
+              div(
+                class = "qsm-table-panel",
+                p(class = "qsm-table-note", "First 15 tracts in the region. Select any tract using the map or the tract list in Model controls."),
+                div(class = "qsm-table-scroll", tabindex = "0", `aria-label` = "Tract data", tableOutput("tract_table"))
+              )
+            ),
+            tabPanel(
+              "Scenario results", value = "results",
+              tabsetPanel(
+                id = "results_view", type = "pills",
+                tabPanel(
+                  "Map", value = "map",
+                  div(
+                    class = "qsm-results-panel",
+                    div(
+                      class = "qsm-results-controls",
+                      selectInput("result_map_var", "Result variable", choices = result_choices, selected = "u"),
+                      selectInput("result_display_mode", "Display mode", choices = display_choices, selected = "pct"),
+                      checkboxInput("hide_selected_in_results", "Hide selected tracts", value = FALSE)
+                    ),
+                    div(class = "qsm-map-panel", leafletOutput("results_map", height = "100%"))
+                  )
                 ),
-                selectInput(
-                  inputId = "result_display_mode",
-                  label = "Display mode",
-                  choices = display_choices,
-                  selected = "pct"
+                tabPanel(
+                  "Summary", value = "summary",
+                  div(class = "qsm-table-panel", h4("Scenario summary"),
+                      div(class = "qsm-table-scroll", tabindex = "0", `aria-label` = "Scenario summary", tableOutput("summary_table")))
                 ),
-                checkboxInput(
-                  inputId = "hide_selected_in_results",
-                  label = "Hide selected tracts in result map",
-                  value = FALSE
-                ),
-                h4("Intervention Stack"),
-                tableOutput("intervention_table"),
-                h4("Scenario Summary"),
-                tableOutput("summary_table")
-              ),
-              column(
-                width = 9,
-                leafletOutput("results_map", height = 700)
+                tabPanel(
+                  "Interventions", value = "interventions",
+                  div(class = "qsm-table-panel", h4("Intervention stack"),
+                      div(class = "qsm-table-scroll", tabindex = "0", `aria-label` = "Intervention stack", tableOutput("intervention_table")))
+                )
               )
             )
           )
         )
       )
-    )
-  }
+    }
+  )
 )
 
 server <- function(input, output, session) {
@@ -292,6 +287,10 @@ server <- function(input, output, session) {
       select(order, tract_set_name, target_variable, shock_label, tract_count)
   })
 
+  output$intervention_count <- renderText({
+    paste(nrow(interventions()), "intervention(s) added")
+  })
+
   output$baseline_map <- renderLeaflet({
     bundle <- req(current_bundle())
     value_col <- req(input$baseline_map_var)
@@ -339,11 +338,13 @@ server <- function(input, output, session) {
 
       incProgress(1, detail = "Preparing outputs")
       scenario_output(scenario_result)
+      updateTabsetPanel(session, "main_view", selected = "results")
+      updateTabsetPanel(session, "results_view", selected = "map")
     })
   })
 
   output$summary_table <- renderTable({
-    req(scenario_output())
+    validate(need(scenario_output(), "Run a scenario to view its summary."))
     scenario_output()$summary_table |>
       mutate(
         baseline = round(baseline, 4),
@@ -354,7 +355,7 @@ server <- function(input, output, session) {
   })
 
   output$results_map <- renderLeaflet({
-    req(scenario_output())
+    validate(need(scenario_output(), "Run a scenario to view its results map."))
 
     result_sf <- scenario_output()$result_sf
     display_col <- resolve_result_column(
