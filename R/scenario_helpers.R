@@ -229,3 +229,65 @@ resolve_result_column <- function(base_name, display_mode) {
 
   paste0("pct_", base_name)
 }
+
+# Percent changes are stored as fractions; only their displayed labels change.
+# Use significant digits so small effects are not rounded to zero. Increase
+# precision when nearby legend ticks would otherwise receive the same label.
+format_result_values <- function(values, display_mode) {
+  values <- as.numeric(values)
+  if (display_mode == "pct") {
+    values <- 100 * values
+  }
+
+  labels <- rep("No data", length(values))
+  finite <- is.finite(values)
+  if (!any(finite)) {
+    return(labels)
+  }
+
+  ticks <- sort(unique(values[finite]))
+  magnitude <- max(abs(ticks))
+  digits <- 4L
+  if (length(ticks) > 1 && magnitude > 0) {
+    digits <- min(15L, max(digits, ceiling(log10(magnitude / min(diff(ticks)))) + 2L))
+  }
+
+  nonzero <- abs(ticks[ticks != 0])
+  scientific <- length(nonzero) > 0 && (min(nonzero) < 0.0001 || magnitude >= 1e7)
+  labels[finite] <- format(
+    values[finite], digits = digits, trim = TRUE,
+    scientific = scientific, big.mark = if (scientific) "" else ","
+  )
+  labels[finite & values == 0] <- "0"
+  if (display_mode == "pct") {
+    labels[finite] <- paste0(labels[finite], "%")
+  }
+  labels
+}
+
+add_result_legend <- function(map, values, pal, title, display_mode) {
+  finite_values <- values[is.finite(values)]
+  distinct_values <- unique(finite_values)
+
+  # A continuous gradient has no meaningful range when everything is hidden,
+  # missing, or equal. Show a labeled swatch instead.
+  if (length(distinct_values) <= 1) {
+    colors <- if (length(distinct_values) == 0) "#d9d9d9" else pal(distinct_values)
+    labels <- if (length(distinct_values) == 0) "No visible data" else format_result_values(distinct_values, display_mode)
+    if (length(distinct_values) == 1 && any(!is.finite(values))) {
+      colors <- c(colors, "#d9d9d9")
+      labels <- c(labels, "Hidden / no data")
+    }
+    return(leaflet::addLegend(
+      map, position = "bottomright", colors = colors, labels = labels,
+      title = title, opacity = 0.8, layerId = "results_legend"
+    ))
+  }
+
+  leaflet::addLegend(
+    map, position = "bottomright", pal = pal, values = values,
+    title = title, opacity = 0.8, bins = 6,
+    na.label = "Hidden / no data", layerId = "results_legend",
+    labFormat = function(type, cuts) format_result_values(cuts, display_mode)
+  )
+}

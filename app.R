@@ -36,9 +36,14 @@ policy_choices <- policy_variable_choices()
 display_choices <- display_mode_choices()
 
 build_palette <- function(values) {
+  finite_values <- as.numeric(values)[is.finite(values)]
+  if (length(finite_values) == 0) {
+    finite_values <- c(0, 1)
+  }
+
   leaflet::colorNumeric(
     palette = "viridis",
-    domain = values,
+    domain = finite_values,
     na.color = "#d9d9d9"
   )
 }
@@ -367,11 +372,12 @@ server <- function(input, output, session) {
       mutate(
         is_selected = GEOID %in% selected_ids(),
         fill_value = .data[[display_col]],
+        fill_value = if_else(is.finite(fill_value), fill_value, NA_real_),
         fill_value = if_else(input$hide_selected_in_results & is_selected, NA_real_, fill_value),
         popup_text = paste0(
           "<strong>GEOID:</strong> ", GEOID, "<br/>",
           "<strong>County:</strong> ", CountyName, "<br/>",
-          "<strong>Display value:</strong> ", round(fill_value, 3)
+          "<strong>Display value:</strong> ", format_result_values(fill_value, input$result_display_mode)
         )
       )
 
@@ -387,10 +393,10 @@ server <- function(input, output, session) {
         weight = ~if_else(is_selected & input$hide_selected_in_results, 0.5, 1),
         popup = ~popup_text
       ) |>
-      addLegend(
-        position = "bottomright",
+      add_result_legend(
         pal = pal,
         values = map_data$fill_value,
+        display_mode = input$result_display_mode,
         title = paste(
           names(result_choices[result_choices == input$result_map_var]),
           names(display_choices[display_choices == input$result_display_mode])

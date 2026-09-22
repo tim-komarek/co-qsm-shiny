@@ -57,3 +57,26 @@ stopifnot(
   any(abs(scenario$result_sf$delta_w) > 1e-10)
 )
 cat("Scenario regression checks passed.\n")
+
+# Legend labels must retain small effects and use actual percentage units.
+stopifnot(
+  identical(format_result_values(c(-0.00002, 0, 0.00002), "pct"), c("-0.002%", "0%", "0.002%")),
+  identical(format_result_values(0.05, "pct"), "5%"),
+  identical(format_result_values(0, "delta"), "0"),
+  identical(format_result_values(c(NA_real_, Inf), "pct"), c("No data", "No data")),
+  length(unique(format_result_values(c(1, 1 + 1e-10, 1 + 2e-10), "cf"))) == 3L,
+  all(as.numeric(format_result_values(c(-2e-9, 2e-9), "delta")) == c(-2e-9, 2e-9))
+)
+
+# Continuous legends and constant/all-hidden swatches must serialize cleanly.
+for (values in list(c(-2e-5, 0, 2e-5), c(0, 0), c(0.05, NA_real_), c(NA_real_, NA_real_))) {
+  finite_values <- values[is.finite(values)]
+  pal <- leaflet::colorNumeric("viridis", if (length(finite_values)) finite_values else c(0, 1))
+  map <- add_result_legend(leaflet::leaflet(), values, pal, "Welfare", "pct")
+  legend <- map$x$calls[[1]]$args[[1]]
+  stopifnot(!any(grepl("NaN|Inf", legend$colors)), length(legend$labels) > 0)
+  if (all(is.na(values))) {
+    stopifnot(identical(as.character(legend$labels), "No visible data"))
+  }
+}
+cat("Dynamic legend checks passed.\n")
